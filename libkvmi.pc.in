@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/@PACKAGE_NAME@
+
+Name: @PACKAGE_NAME@
+Description: KVM Virtual Machine Introspection library
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lkvmi
+Cflags: -I${includedir} -I${includedir}/linux/@ARCH@

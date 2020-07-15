@@ -1,0 +1,16 @@
+Makefile.in
+aclocal.m4
+autom4te.cache/
+compile
+config.guess
+config.h.in
+config.sub
+configure
+depcomp
+examples/Makefile.in
+include/Makefile.in
+install-sh
+ltmain.sh
+m4/
+missing
+src/Makefile.in
