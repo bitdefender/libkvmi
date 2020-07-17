@@ -25,7 +25,7 @@ applications that use the KVM's VMI subsystem client library
 ./bootstrap
 
 %build
-%configure
+%configure --enable-optimize
 make
 
 %install
