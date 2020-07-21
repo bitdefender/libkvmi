@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Bitdefender S.R.L.
+ * Copyright (C) 2017-2020 Bitdefender S.R.L.
  *
  * The program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -25,8 +25,8 @@
 #define MAX_VCPU 256
 
 #define EPT_TEST_PAGES 20
-#define PAGE_SIZE 4096
-#define WAIT_30s ( 30 * 1000 )
+#define PAGE_SIZE      4096
+#define WAIT_30s       ( 30 * 1000 )
 
 #define CR3 3
 #define CR4 4
@@ -47,7 +47,7 @@ static void die( const char *msg )
 
 static void setup_vcpu_reply( struct kvmi_dom_event *ev, struct kvmi_vcpu_hdr *rpl, int action )
 {
-	struct kvmi_event_reply *common = (struct kvmi_event_reply *)( rpl + 1 );
+	struct kvmi_event_reply *common = ( struct kvmi_event_reply * )( rpl + 1 );
 
 	memset( rpl, 0, sizeof( *rpl ) );
 	rpl->vcpu = ev->event.common.vcpu;
@@ -81,8 +81,8 @@ static void handle_cr_event( void *dom, struct kvmi_dom_event *ev )
 {
 	struct kvmi_event_cr *cr = &ev->event.cr;
 	struct {
-		struct kvmi_vcpu_hdr hdr;
-		struct kvmi_event_reply common;
+		struct kvmi_vcpu_hdr       hdr;
+		struct kvmi_event_reply    common;
 		struct kvmi_event_cr_reply cr;
 	} rpl = { 0 };
 
@@ -96,8 +96,8 @@ static void handle_msr_event( void *dom, struct kvmi_dom_event *ev )
 {
 	struct kvmi_event_msr *msr = &ev->event.msr;
 	struct {
-		struct kvmi_vcpu_hdr hdr;
-		struct kvmi_event_reply common;
+		struct kvmi_vcpu_hdr        hdr;
+		struct kvmi_event_reply     common;
 		struct kvmi_event_msr_reply msr;
 	} rpl = { 0 };
 
@@ -114,9 +114,9 @@ static void enable_vcpu_events( void *dom, unsigned int vcpu )
 
 	printf( "Enabling CR, MSR and PF events (vcpu%u)\n", vcpu );
 
-	if ( kvmi_control_events( dom, vcpu, KVMI_EVENT_CR, enable )
-		|| kvmi_control_events( dom, vcpu, KVMI_EVENT_MSR, enable )
-		|| kvmi_control_events( dom, vcpu, KVMI_EVENT_PF, enable ) )
+	if ( kvmi_control_events( dom, vcpu, KVMI_EVENT_CR, enable ) ||
+	     kvmi_control_events( dom, vcpu, KVMI_EVENT_MSR, enable ) ||
+	     kvmi_control_events( dom, vcpu, KVMI_EVENT_PF, enable ) )
 		die( "kvmi_control_events" );
 
 	if ( vcpu == 0 ) {
@@ -140,9 +140,9 @@ static void enable_vcpu_events( void *dom, unsigned int vcpu )
 static void handle_pause_vcpu_event( void *dom, struct kvmi_dom_event *ev )
 {
 	struct {
-		struct kvmi_vcpu_hdr hdr;
+		struct kvmi_vcpu_hdr    hdr;
 		struct kvmi_event_reply common;
-	} rpl = { 0 };
+	} rpl             = { 0 };
 	unsigned int vcpu = ev->event.common.vcpu;
 	static bool  events_enabled[MAX_VCPU];
 
@@ -156,40 +156,17 @@ static void handle_pause_vcpu_event( void *dom, struct kvmi_dom_event *ev )
 	reply_continue( dom, ev, &rpl.hdr, sizeof( rpl ) );
 }
 
-static __u8 get_page_access( void *dom, __u64 gpa )
-{
-	unsigned char access;
-
-	printf( "Get page access gpa 0x%llx\n", gpa );
-
-	if ( kvmi_get_page_access( dom, gpa, &access ) )
-		die( "kvmi_set_page_access" );
-
-	printf( "Access is %s (0x%x)\n", access_str[access & 7], access );
-
-	return access;
-}
-
 static void set_page_access( void *dom, __u64 gpa, __u8 access )
 {
 	printf( "Set page access gpa 0x%llx access %s [0x%x]\n", gpa, access_str[access & 7], access );
 
-	if ( kvmi_set_page_access( dom, &gpa, &access, 1 ) )
+	if ( kvmi_set_page_access( dom, &gpa, &access, 1, 0 ) )
 		die( "kvmi_set_page_access" );
 }
 
-static bool write_protect_page( void *dom, __u64 gpa )
+static void write_protect_page( void *dom, __u64 gpa )
 {
-	__u8 access = get_page_access( dom, gpa );
-
-	if ( access & KVMI_PAGE_ACCESS_W ) {
-		access &= ~KVMI_PAGE_ACCESS_W;
-		set_page_access( dom, gpa, access );
-
-		return true;
-	}
-
-	return false;
+	set_page_access( dom, gpa, KVMI_PAGE_ACCESS_R | KVMI_PAGE_ACCESS_X );
 }
 
 static void maybe_start_pf_test( void *dom, struct kvmi_dom_event *ev )
@@ -205,8 +182,9 @@ static void maybe_start_pf_test( void *dom, struct kvmi_dom_event *ev )
 	printf( "Starting #PF test with CR3 0x%llx (vcpu%u)\n", cr3, vcpu );
 
 	for ( __u64 end = pt + EPT_TEST_PAGES * PAGE_SIZE; pt < end; pt += PAGE_SIZE )
-		if ( write_protect_page( dom, pt ) )
-			started = true;
+		write_protect_page( dom, pt );
+
+	started = true;
 
 	if ( ev->event.common.event == KVMI_EVENT_CR ) {
 		bool enable = false;
@@ -226,18 +204,13 @@ static void handle_pf_event( void *dom, struct kvmi_dom_event *ev )
 		struct kvmi_vcpu_hdr       hdr;
 		struct kvmi_event_reply    common;
 		struct kvmi_event_pf_reply pf;
-	} rpl = {};
+	} rpl       = {};
+	__u8 access = KVMI_PAGE_ACCESS_R | KVMI_PAGE_ACCESS_W | KVMI_PAGE_ACCESS_X;
 
 	printf( "PF gva 0x%llx gpa 0x%llx access %s [0x%x] (vcpu%u)\n", pf->gva, pf->gpa, access_str[pf->access & 7],
 	        pf->access, vcpu );
 
-	if ( pf->access & KVMI_PAGE_ACCESS_W ) {
-		__u8 access = get_page_access( dom, pf->gpa );
-
-		access |= KVMI_PAGE_ACCESS_W;
-
-		set_page_access( dom, pf->gpa, access );
-	}
+	set_page_access( dom, pf->gpa, access );
 
 	reply_retry( dom, ev, &rpl.hdr, sizeof( rpl ) );
 }
@@ -285,7 +258,7 @@ static void pause_vm( void *dom )
 static int new_guest( void *dom, unsigned char ( *uuid )[16], void *ctx )
 {
 	unsigned long long max_gfn;
-	int k;
+	int                k;
 
 	printf( "New guest: " );
 
@@ -308,90 +281,82 @@ static int new_guest( void *dom, unsigned char ( *uuid )[16], void *ctx )
 
 static int new_handshake( const struct kvmi_qemu2introspector *qemu, struct kvmi_introspector2qemu *intro, void *ctx )
 {
-	(void) qemu;
-	(void) intro;
-	(void) ctx;
-
-	printf( "New handshake\n" );
+	( void )intro;
+	( void )ctx;
+	printf( "New handshake: name '%s' start_time %ld\n", qemu->name, qemu->start_time );
 	return 0;
 }
 
 static void log_cb( kvmi_log_level level, const char *s, void *ctx )
 {
-	(void) ctx;
-
+	( void )ctx;
 	printf( "[level=%d]: %s\n", level, s );
 }
 
 static int spp_bypass = 0;
 
-static void spp_bitmap_test( void *dom)
+static void spp_bitmap_test( void *dom )
 {
-	int ret = 0;
-	__u64 cmd;
+	int   ret = 0;
+	__u64 cmd = 777;
 	__u64 gfn;
 	__u64 gpa;
-	__u32 bitmap;
+	__u32 bitmap = 0;
 	__u32 origin_bitmap;
 
-	char buff[64] = {0};
+	char buff[64] = { 0 };
 
-	printf("please input gfn :\n\
+	printf( "please input gfn :\n\
 		777 for bypass spp test,\n\
-		888 to skip this round.\n");
+		888 to skip this round.\n" );
 
-	fgets(buff, 63, stdin);
+	if ( fgets( buff, 63, stdin ) )
+		cmd = atoll( buff );
 
-	cmd = atoll(buff);
-
-	if(cmd == 777)
-	{
+	if ( cmd == 777 ) {
 		spp_bypass = 1;
 		return;
 	}
 
-	if(cmd == 888)
-	      return;
+	if ( cmd == 888 )
+		return;
 
-	printf("input gfn: 0x%llx(%lld)\n", cmd, cmd);
-
+	printf( "input gfn: 0x%llx(%lld)\n", cmd, cmd );
 
 	gfn = cmd;
 
-	memset(buff, 0, sizeof(buff));
+	memset( buff, 0, sizeof( buff ) );
 
-	printf("please input spp bitmap:\n");
+	printf( "please input spp bitmap:\n" );
 
-	fgets(buff, 63, stdin);
-
-	bitmap = atoll(buff);
-	printf("input spp bitmap: 0x%x(%d)\n", bitmap, bitmap);
+	if ( fgets( buff, 63, stdin ) )
+		bitmap = atoll( buff );
+	printf( "input spp bitmap: 0x%x(%d)\n", bitmap, bitmap );
 
 	/* to cheat kvmi function.*/
 	gpa = gfn << 12;
 
-	ret = kvmi_set_page_write_bitmap(dom, &gpa, &bitmap, 1);
+	ret = kvmi_set_page_write_bitmap( dom, &gpa, &bitmap, 1 );
 
-	if(ret < 0)
-	      printf("failed to set spp bitmap.\n");
+	if ( ret < 0 )
+		printf( "failed to set spp bitmap.\n" );
 	else
-	      printf("set spp bit map successfully.\n");
+		printf( "set spp bit map successfully.\n" );
 
 	origin_bitmap = bitmap;
-	bitmap = 0;
+	bitmap        = 0;
 
-	ret = kvmi_get_page_write_bitmap(dom, gpa, &bitmap);
+	ret = kvmi_get_page_write_bitmap( dom, gpa, &bitmap );
 
-	if(ret <0)
-	      printf("failed to get spp bitmap. error = %d\n", ret);
+	if ( ret < 0 )
+		printf( "failed to get spp bitmap. error = %d\n", ret );
 	else
-	      printf("bitmap for gfn(0x%llx) is 0x%x\n", gfn, bitmap);
+		printf( "bitmap for gfn(0x%llx) is 0x%x\n", gfn, bitmap );
 
-	if (bitmap == origin_bitmap)
-	      printf("spp test passed!\n");
+	if ( bitmap == origin_bitmap )
+		printf( "spp test passed!\n" );
 	else
-	      printf("spp test failed.\n");
-
+		printf( "spp test failed.\n" );
 }
 
 int main( int argc, char **argv )
@@ -433,8 +398,8 @@ int main( int argc, char **argv )
 			if ( errno == ETIMEDOUT ) {
 				printf( "No event.\n" );
 
-				if (!spp_bypass)
-					spp_bitmap_test(Dom);
+				if ( !spp_bypass )
+					spp_bitmap_test( Dom );
 
 				continue;
 			}
@@ -448,7 +413,7 @@ int main( int argc, char **argv )
 
 		handle_event( Dom, ev );
 
-		free(ev);
+		free( ev );
 	}
 
 	kvmi_uninit( ctx );
