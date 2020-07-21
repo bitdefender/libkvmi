@@ -16,8 +16,6 @@ enum {
 	KVMI_EVENT_REPLY           = 0,
 	KVMI_EVENT                 = 1,
 
-	KVMI_FIRST_COMMAND         = 2,
-
 	KVMI_GET_VERSION           = 2,
 	KVMI_CHECK_COMMAND         = 3,
 	KVMI_CHECK_EVENT           = 4,
@@ -44,10 +42,21 @@ enum {
 	KVMI_GET_PAGE_WRITE_BITMAP = 25,
 	KVMI_SET_PAGE_WRITE_BITMAP = 26,
 	KVMI_CONTROL_CMD_RESPONSE  = 27,
-	KVMI_GET_MAX_GFN	   = 29,
+	KVMI_SET_VE_INFO_PAGE      = 28,
+	KVMI_GET_MAX_GFN           = 29,
+	KVMI_SET_EPT_PAGE_CONV     = 30,
+	KVMI_GET_EPT_PAGE_CONV     = 31,
+	KVMI_SWITCH_EPT_VIEW       = 32,
+	KVMI_DISABLE_VE            = 33,
+	KVMI_GET_EPT_VIEW          = 34,
+	KVMI_VCPU_TRANSLATE_GVA    = 35,
+	KVMI_CONTROL_EPT_VIEW      = 36,
+	KVMI_VCPU_GET_XCR          = 37,
+	KVMI_VCPU_SET_XSAVE        = 38,
 
-	KVMI_NEXT_AVAILABLE_COMMAND,
+	KVMI_VCPU_CONTROL_SINGLESTEP = 63,
 
+	KVM_NUM_MESSAGES
 };
 
 enum {
@@ -74,6 +83,7 @@ enum {
 #define KVMI_PAGE_ACCESS_R (1 << 0)
 #define KVMI_PAGE_ACCESS_W (1 << 1)
 #define KVMI_PAGE_ACCESS_X (1 << 2)
+#define KVMI_PAGE_ACCESS_SVE (1 << 3)
 
 #define KVMI_MSG_SIZE (4096 * 2 - sizeof(struct kvmi_msg_hdr))
 
@@ -91,6 +101,7 @@ struct kvmi_error_code {
 struct kvmi_get_version_reply {
 	__u32 version;
 	__u32 padding;
+	struct kvmi_features features;
 };
 
 struct kvmi_control_cmd_response {
@@ -218,8 +229,8 @@ struct kvmi_vcpu_hdr {
 
 struct kvmi_inject_exception {
 	__u8 nr;
-	__u8 has_error;
-	__u16 padding;
+	__u8 padding1;
+	__u16 padding2;
 	__u32 error_code;
 	__u64 address;
 };
@@ -263,29 +274,89 @@ struct kvmi_event_breakpoint {
 	__u8 padding[7];
 };
 
-struct kvmi_map_mem_token {
+struct kvmi_mem_token {
 	__u64 token[4];
-};
-
-struct kvmi_get_map_token_reply {
-	struct kvmi_map_mem_token token;
-};
-
-/* Map other guest's gpa to local gva */
-struct kvmi_mem_map {
-	struct kvmi_map_mem_token token;
-	__u64 gpa;
-	__u64 gva;
 };
 
 struct kvmi_get_max_gfn_reply {
 	__u64 gfn;
 };
 
+struct kvmi_set_ve_info_page {
+	__u64 gpa;
+	__u8  trigger_vmexit;
+	__u8  padding[7];
+};
+
+struct kvmi_set_ept_page_conv_req {
+	__u16 view;
+	__u8  sve;
+	__u8  padding[5];
+	__u64 gpa;
+};
+
+struct kvmi_get_ept_page_conv_req {
+	__u16 view;
+	__u16 padding[3];
+	__u64 gpa;
+};
+
+struct kvmi_get_ept_page_conv_reply {
+	__u8 sve;
+	__u8 padding[7];
+};
+
+struct kvmi_switch_ept_view_req {
+	__u16 view;
+	__u16 padding[3];
+};
+
+struct kvmi_get_ept_view_reply {
+	__u16 view;
+	__u8  padding[6];
+};
+
+struct kvmi_control_ept_view_req {
+	__u16 view;
+	__u8  visible;
+	__u8  padding1;
+	__u32 padding2;
+};
+
+struct kvmi_vcpu_get_xcr {
+	__u8 xcr;
+	__u8 padding[7];
+};
+
+struct kvmi_vcpu_get_xcr_reply {
+	__u64 value;
+};
+
+struct kvmi_vcpu_control_singlestep {
+	__u8 enable;
+	__u8 padding[7];
+};
+
+struct kvmi_vcpu_translate_gva {
+	__u64 gva;
+};
+
+struct kvmi_vcpu_translate_gva_reply {
+	__u64 gpa;
+};
+
 /*
  * ioctls for /dev/kvmmem
  */
-#define KVM_INTRO_MEM_MAP       _IOW('i', 0x01, struct kvmi_mem_map)
-#define KVM_INTRO_MEM_UNMAP     _IOW('i', 0x02, unsigned long)
+struct kvmi_guest_mem_map {
+	struct kvmi_mem_token token;		/* In */
+	__u64 gpa;				/* In/Out */
+	__u64 virt;				/* Out */
+	__u64 length;				/* Out */
+};
+
+#define KVM_GUEST_MEM_OPEN	_IOW('i', 0x01, unsigned char *)
+#define KVM_GUEST_MEM_MAP	_IOWR('i', 0x02, struct kvmi_guest_mem_map)
+#define KVM_GUEST_MEM_UNMAP	_IOW('i', 0x03, unsigned long)
 
 #endif /* _UAPI__LINUX_KVMI_H */
