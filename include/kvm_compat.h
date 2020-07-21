@@ -21,4 +21,12 @@
 # define KVM_ENOMEM ENOMEM
 #endif
 
+#ifndef KVM_EINVAL
+# define KVM_EINVAL EINVAL
+#endif
+
+#ifndef KVM_EOPNOTSUPP
+# define KVM_EOPNOTSUPP 95
+#endif
+
 #endif

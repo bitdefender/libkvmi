@@ -10,9 +10,7 @@
 
 struct kvmi_event_arch {
 	__u8 mode;		/* 2, 4 or 8 */
-	__u8 padding1;
-	__u16 view;
-	__u8 padding2[4];
+	__u8 padding[7];
 	struct kvm_regs regs;
 	struct kvm_sregs sregs;
 	struct {
@@ -29,10 +27,10 @@ struct kvmi_event_arch {
 };
 
 struct kvmi_event_trap {
-	__u8 vector;
-	__u8 padding1;
-	__u16 padding2;
+	__u32 vector;
+	__u32 type;
 	__u32 error_code;
+	__u32 padding;
 	__u64 cr2;
 };
 
@@ -103,10 +101,6 @@ struct kvmi_get_xsave_reply {
 	__u32 region[0];
 };
 
-struct kvmi_vcpu_set_xsave {
-	__u32 region[0];
-};
-
 struct kvmi_get_mtrr_type {
 	__u64 gpa;
 };
@@ -125,14 +119,6 @@ struct kvmi_event_descriptor {
 	__u8 descriptor;
 	__u8 write;
 	__u8 padding[6];
-};
-
-struct kvmi_features {
-	__u8 spp;
-	__u8 vmfunc;
-	__u8 eptp;
-	__u8 ve;
-	__u8 padding[4];
 };
 
 #endif /* _UAPI_ASM_X86_KVMI_H */
