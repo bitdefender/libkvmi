@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2019 Bitdefender S.R.L.
+ * Copyright (C) 2017-2020 Bitdefender S.R.L.
  *
  * The KVMI Library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,10 +26,7 @@
 
 typedef int kvmi_timeout_t;
 
-enum {
-	KVMI_NOWAIT = 0,
-	KVMI_WAIT   = 150
-};
+enum { KVMI_NOWAIT = 0, KVMI_WAIT = 150 };
 
 struct kvmi_dom_event {
 	void *next;
@@ -90,10 +87,13 @@ int   kvmi_control_events( void *dom, unsigned short vcpu, int id, bool enable )
 int   kvmi_control_vm_events( void *dom, int id, bool enable );
 int   kvmi_control_cr( void *dom, unsigned short vcpu, unsigned int cr, bool enable );
 int   kvmi_control_msr( void *dom, unsigned short vcpu, unsigned int msr, bool enable );
+int   kvmi_control_singlestep( void *dom, unsigned short vcpu, bool enable );
+int   kvmi_translate_gva( void *dom, unsigned short vcpu, __u64 gva, __u64 *gpa );
 int   kvmi_pause_all_vcpus( void *dom, unsigned int count );
-int   kvmi_get_page_access( void *dom, unsigned long long int gpa, unsigned char *access );
+int   kvmi_get_page_access( void *dom, unsigned long long int gpa, unsigned char *access, unsigned short view );
 int   kvmi_get_page_write_bitmap( void *dom, __u64 gpa, __u32 *bitmap );
-int   kvmi_set_page_access( void *dom, unsigned long long int *gpa, unsigned char *access, unsigned short count );
+int   kvmi_set_page_access( void *dom, unsigned long long int *gpa, unsigned char *access, unsigned short count,
+                            unsigned short view );
 int   kvmi_set_page_write_bitmap( void *dom, __u64 *gpa, __u32 *bitmap, unsigned short count );
 int   kvmi_get_vcpu_count( void *dom, unsigned int *count );
 int64_t kvmi_get_starttime( const void *dom );
@@ -101,12 +101,15 @@ int     kvmi_get_tsc_speed( void *dom, unsigned long long int *speed );
 int     kvmi_get_cpuid( void *dom, unsigned short vcpu, unsigned int function, unsigned int index, unsigned int *eax,
                         unsigned int *ebx, unsigned int *ecx, unsigned int *edx );
 int     kvmi_get_mtrr_type( void *dom, unsigned long long int gpa, unsigned char *type );
+int     kvmi_get_xcr( void *dom, unsigned short vcpu, __u8 xcr, __u64 *value );
 int     kvmi_get_xsave( void *dom, unsigned short vcpu, void *buffer, size_t bufSize );
-int     kvmi_inject_exception( void *dom, unsigned short vcpu, unsigned long long int gva, unsigned int error, unsigned char vector );
+int     kvmi_set_xsave( void *dom, unsigned short vcpu, const void *buffer, size_t size );
+int     kvmi_inject_exception( void *dom, unsigned short vcpu, unsigned long long int gva, unsigned int error,
+                               unsigned char vector );
 int     kvmi_read_physical( void *dom, unsigned long long int gpa, void *buffer, size_t size );
 int     kvmi_write_physical( void *dom, unsigned long long int gpa, const void *buffer, size_t size );
 void *  kvmi_map_physical_page( void *dom, unsigned long long int gpa );
-int     kvmi_unmap_physical_page( const void *dom, void *addr );
+int     kvmi_unmap_physical_page( void *dom, void *addr );
 int     kvmi_get_registers( void *dom, unsigned short vcpu, struct kvm_regs *regs, struct kvm_sregs *sregs,
                             struct kvm_msrs *msrs, unsigned int *mode );
 int     kvmi_set_registers( void *dom, unsigned short vcpu, const struct kvm_regs *regs );
@@ -120,9 +123,24 @@ int     kvmi_batch_commit( void *batch );
 void    kvmi_batch_free( void *batch );
 int     kvmi_queue_registers( void *batch, unsigned short vcpu, const struct kvm_regs *regs );
 int     kvmi_queue_reply_event( void *batch, unsigned int msg_seq, const void *data, size_t data_size );
-int     kvmi_queue_page_access( void *batch, unsigned long long int *gpa, unsigned char *access, unsigned short count );
+int     kvmi_queue_page_access( void *batch, unsigned long long int *gpa, unsigned char *access, unsigned short count,
+                                unsigned short view );
 int     kvmi_queue_pause_vcpu( void *batch, unsigned short vcpu );
 int     kvmi_get_maximum_gfn( void *dom, unsigned long long *gfn );
+int     kvmi_spp_support( void *dom, bool *supported );
+int     kvmi_ve_support( void *dom, bool *supported );
+int     kvmi_vmfunc_support( void *dom, bool *supported );
+int     kvmi_eptp_support( void *dom, bool *supported );
+int     kvmi_queue_spp_access( void *batch, __u64 *gpa, __u32 *bitmap, __u16 view, __u16 count );
+int     kvmi_set_ve_info_page( void *dom, unsigned short vcpu, unsigned long long int gpa );
+int     kvmi_set_ept_page_conv( void *dom, unsigned short index, unsigned long long gpa, bool sve );
+int     kvmi_get_ept_page_conv( void *dom, unsigned short index, unsigned long long gpa, bool *sve );
+int     kvmi_switch_ept_view( void *dom, unsigned short vcpu, unsigned short view );
+int     kvmi_disable_ve( void *dom, unsigned short vcpu );
+int     kvmi_get_ept_view( void *dom, unsigned short vcpu, unsigned short *view );
+int     kvmi_control_ept_view( void *dom, unsigned short vcpu, unsigned short view, bool visible );
+bool    kvmi_remote_mapping_v2( void );
+size_t  kvmi_get_pending_events( void *dom );
 
 #ifdef __cplusplus
 }
