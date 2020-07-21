@@ -1,6 +1,6 @@
 # Libkvmi
 
-![Build](https://github.com/Wenzel/libkvmi/workflows/Build/badge.svg)
+![Build](https://github.com/bitdefender/libkvmi/workflows/Build/badge.svg)
 
 (c) 2017-2020 Bitdefender SRL
 
