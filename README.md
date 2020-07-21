@@ -16,14 +16,14 @@ This will build the library and the test under `examples/`.
 
 To see the test in action, ensure you have a Linux kernel built with
 CONFIG_KVM_INTROSPECTION and already installed
-([kvmi-v7 branch](https://github.com/KVM-VMI/kvm/tree/kvmi-v7)).
+([kvmi-v6 branch](https://github.com/KVM-VMI/kvm/tree/kvmi-v6)).
 
 	Virtualization
 		Kernel-based Virtual Machine (KVM) support
 		KVM Introspection
 
 You also need QEMU built with VM introspection support
-([kvmi-v7 branch](https://github.com/KVM-VMI/qemu/tree/kvmi-v7)).
+([kvmi-v6 branch](https://github.com/KVM-VMI/qemu/tree/kvmi-v6)).
 
 In the `examples/` subdirectory run:
 ```
