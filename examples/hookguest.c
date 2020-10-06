@@ -302,7 +302,6 @@ static void spp_bitmap_test( void *dom )
 	__u64 gfn;
 	__u64 gpa;
 	__u32 bitmap = 0;
-	__u32 origin_bitmap;
 
 	char buff[64] = { 0 };
 
@@ -342,21 +341,6 @@ static void spp_bitmap_test( void *dom )
 		printf( "failed to set spp bitmap.\n" );
 	else
 		printf( "set spp bit map successfully.\n" );
-
-	origin_bitmap = bitmap;
-	bitmap        = 0;
-
-	ret = kvmi_get_page_write_bitmap( dom, gpa, &bitmap );
-
-	if ( ret < 0 )
-		printf( "failed to get spp bitmap. error = %d\n", ret );
-	else
-		printf( "bitmap for gfn(0x%llx) is 0x%x\n", gfn, bitmap );
-
-	if ( bitmap == origin_bitmap )
-		printf( "spp test passed!\n" );
-	else
-		printf( "spp test failed.\n" );
 }
 
 int main( int argc, char **argv )
