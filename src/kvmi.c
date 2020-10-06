@@ -1574,64 +1574,6 @@ out:
 	return err;
 }
 
-int kvmi_get_page_access( void *dom, unsigned long long int gpa, unsigned char *access, unsigned short view )
-{
-	struct kvmi_get_page_access *      req      = NULL;
-	struct kvmi_get_page_access_reply *rpl      = NULL;
-	size_t                             req_size = sizeof( *req ) + 1 * sizeof( req->gpa[0] );
-	size_t                             rpl_size = sizeof( *rpl ) + 1 * sizeof( rpl->access[0] );
-	int                                err      = -1;
-
-	req = calloc( 1, req_size );
-	rpl = malloc( rpl_size );
-	if ( !req || !rpl )
-		goto out;
-
-	req->count  = 1;
-	req->gpa[0] = gpa;
-	req->view   = view;
-
-	err = request( dom, KVMI_GET_PAGE_ACCESS, req, req_size, rpl, &rpl_size );
-
-	if ( !err )
-		*access = rpl->access[0];
-
-out:
-	free( req );
-	free( rpl );
-
-	return err;
-}
-
-int kvmi_get_page_write_bitmap( void *dom, __u64 gpa, __u32 *bitmap )
-{
-	struct kvmi_get_page_write_bitmap *      req      = NULL;
-	struct kvmi_get_page_write_bitmap_reply *rpl      = NULL;
-	size_t                                   req_size = sizeof( *req ) + 1 * sizeof( req->gpa[0] );
-	size_t                                   rpl_size = sizeof( *rpl ) + 1 * sizeof( rpl->bitmap[0] );
-	int                                      err      = -1;
-
-	req = malloc( req_size );
-	rpl = malloc( rpl_size );
-	if ( !req || !rpl )
-		goto out;
-
-	memset( req, 0, req_size );
-	req->count  = 1;
-	req->gpa[0] = gpa;
-
-	err = request( dom, KVMI_GET_PAGE_WRITE_BITMAP, req, req_size, rpl, &rpl_size );
-
-	if ( !err )
-		*bitmap = rpl->bitmap[0];
-
-out:
-	free( req );
-	free( rpl );
-
-	return err;
-}
-
 static void *alloc_kvmi_set_page_access_msg( unsigned long long int *gpa, unsigned char *access, unsigned short count,
                                              size_t *msg_size, unsigned short view )
 {
