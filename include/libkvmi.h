@@ -39,6 +39,7 @@ struct kvmi_dom_event {
 			struct kvmi_event_pf         page_fault;
 			struct kvmi_event_trap       trap;
 			struct kvmi_event_descriptor desc;
+			struct kvmi_event_cpuid      cpuid;
 		};
 	} event;
 	unsigned char buf[KVMI_MSG_SIZE];
