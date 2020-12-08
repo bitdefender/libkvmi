@@ -40,6 +40,7 @@ KVMI_1.0 {
 		kvmi_queue_reply_event;
 		kvmi_queue_spp_access;
 		kvmi_read_physical;
+		kvmi_remote_mapping_v2;
 		kvmi_reply_event;
 		kvmi_set_event_cb;
 		kvmi_set_log_cb;
