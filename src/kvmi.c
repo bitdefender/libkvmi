@@ -175,9 +175,9 @@ static kvmi_log_cb log_cb;
 static void *      log_ctx;
 static bool        mem_v2;
 
-static int recv_reply( struct kvmi_dom *dom, const struct kvmi_msg_hdr *req, void *dest, size_t *dest_size );
-static int __kvmi_get_version( void *dom, unsigned int *version, struct kvmi_features *features );
-static int __kvmi_batch_commit( struct kvmi_batch *grp, bool wait_for_reply );
+static int  recv_reply( struct kvmi_dom *dom, const struct kvmi_msg_hdr *req, void *dest, size_t *dest_size );
+static int  __kvmi_get_version( void *dom, unsigned int *version, struct kvmi_features *features );
+static int  __kvmi_batch_commit( struct kvmi_batch *grp, bool wait_for_reply );
 static void __kvmi_mem_cache_cleanup( struct kvmi_dom *dom );
 
 bool kvmi_remote_mapping_v2( void )
