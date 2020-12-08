@@ -329,7 +329,6 @@ struct kvmi_vcpu_translate_gva_reply {
 struct kvmi_guest_mem_map {
 	struct kvmi_mem_token token;		/* In */
 	__u64 gpa;				/* In/Out */
-	__u64 virt;				/* Out */
 	__u64 length;				/* Out */
 };
 

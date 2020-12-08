@@ -40,6 +40,7 @@
 
 #include "libkvmi.h"
 #include "kvm_compat.h"
+#include "list.h"
 
 #define MIN( X, Y ) ( ( X ) < ( Y ) ? ( X ) : ( Y ) )
 
@@ -85,12 +86,23 @@ struct sockaddr_vm {
 
 #define KVMI_MAX_TIMEOUT 15000
 
+struct kvmi_mem_region {
+	unsigned long long start;
+	void *             virt;
+	size_t             length;
+	unsigned int       refcount;
+
+	list_t link;
+};
+
 struct kvmi_dom {
 	int                           fd;
 	unsigned int                  api_version;
 	struct kvmi_features          supported;
 	bool                          disconnected;
 	int                           mem_fd;
+	list_t                        mem_cache;
+	pthread_mutex_t               mem_lock;
 	void *                        cb_ctx;
 	struct kvmi_dom_event *       events;
 	struct kvmi_dom_event *       event_last;
@@ -161,15 +173,33 @@ static long        pagesize;
 static size_t      batch_preallocated_size;
 static kvmi_log_cb log_cb;
 static void *      log_ctx;
+static bool        mem_v2;
 
 static int recv_reply( struct kvmi_dom *dom, const struct kvmi_msg_hdr *req, void *dest, size_t *dest_size );
 static int __kvmi_get_version( void *dom, unsigned int *version, struct kvmi_features *features );
 static int __kvmi_batch_commit( struct kvmi_batch *grp, bool wait_for_reply );
+static void __kvmi_mem_cache_cleanup( struct kvmi_dom *dom );
+
+bool kvmi_remote_mapping_v2( void )
+{
+	return mem_v2;
+}
 
 __attribute__( ( constructor ) ) static void lib_init( void )
 {
+	int fd;
+
 	pagesize                = sysconf( _SC_PAGE_SIZE );
 	batch_preallocated_size = pagesize * BATCH_PREALLOCATED_PAGES;
+
+	fd = open( "/dev/kvmmem", O_RDWR );
+	if ( fd != -1 ) {
+		int err;
+
+		err    = ioctl( fd, KVM_GUEST_MEM_UNMAP, 0 );
+		mem_v2 = !err || errno != ENOTTY;
+		close( fd );
+	}
 }
 
 static void kvmi_log_generic( kvmi_log_level level, const char *s, va_list va )
@@ -279,6 +309,19 @@ static int kvmi_open_kvmmem( struct kvmi_dom *dom )
 		return 0;
 
 	dom->mem_fd = open( "/dev/kvmmem", O_RDWR );
+	if ( dom->mem_fd != -1 ) {
+		if ( !mem_v2 )
+			kvmi_log_warning( "%s: using remote mapping v1!", __func__ );
+		else {
+			int err;
+
+			err = ioctl( dom->mem_fd, KVM_GUEST_MEM_OPEN, &dom->hsk.uuid );
+			if ( err ) {
+				close( dom->mem_fd );
+				dom->mem_fd = -1;
+			}
+		}
+	}
 
 	return dom->mem_fd < 0 ? -1 : 0;
 }
@@ -286,6 +329,8 @@ static int kvmi_open_kvmmem( struct kvmi_dom *dom )
 static void kvmi_close_kvmmem( struct kvmi_dom *dom )
 {
 	if ( dom->mem_fd != -1 ) {
+		if ( mem_v2 )
+			__kvmi_mem_cache_cleanup( dom );
 		close( dom->mem_fd );
 		dom->mem_fd = -1;
 	}
@@ -938,6 +983,8 @@ static void *accept_worker( void *_ctx )
 
 		dom->fd     = fd;
 		dom->mem_fd = -1;
+		INIT_LIST_HEAD( &dom->mem_cache );
+		pthread_mutex_init( &dom->mem_lock, NULL );
 		pthread_mutex_init( &dom->event_lock, NULL );
 		pthread_mutex_init( &dom->lock, NULL );
 
@@ -1118,6 +1165,7 @@ void kvmi_domain_close( void *d, bool do_shutdown )
 		ev = next;
 	}
 
+	pthread_mutex_destroy( &dom->mem_lock );
 	pthread_mutex_destroy( &dom->event_lock );
 	pthread_mutex_destroy( &dom->lock );
 
@@ -1826,7 +1874,180 @@ int kvmi_write_physical( void *dom, unsigned long long int gpa, const void *buff
 	return err;
 }
 
-void *kvmi_map_physical_page( void *d, unsigned long long int gpa )
+static struct kvmi_mem_region *kvmi_mem_cache_lookup_gpa( struct kvmi_dom *dom, unsigned long long int gpa )
+{
+	list_t *                i;
+	struct kvmi_mem_region *reg;
+
+	list_for_each( i, &dom->mem_cache )
+	{
+		reg = list_container( i, struct kvmi_mem_region, link );
+
+		if ( gpa >= reg->start && gpa < reg->start + reg->length )
+			return reg;
+	}
+
+	return NULL;
+}
+
+static struct kvmi_mem_region *kvmi_mem_cache_lookup_virt( struct kvmi_dom *dom, void *addr )
+{
+	list_t *                i;
+	struct kvmi_mem_region *reg;
+
+	list_for_each( i, &dom->mem_cache )
+	{
+		reg = list_container( i, struct kvmi_mem_region, link );
+
+		if ( addr >= reg->virt && ( char * )addr < ( char * )reg->virt + reg->length )
+			return reg;
+	}
+
+	return NULL;
+}
+
+static void *kvmi_map_physical_page_v2( void *d, unsigned long long int gpa )
+{
+	struct kvmi_dom *     dom = d;
+	struct kvmi_mem_token token;
+	size_t                received = sizeof( token );
+
+	struct kvmi_guest_mem_map map_req;
+	struct kvmi_mem_region *  reg;
+	int                       err;
+	void *                    result;
+
+	pthread_mutex_lock( &dom->mem_lock );
+again:
+	/* first look-up physical address in region cache */
+	reg = kvmi_mem_cache_lookup_gpa( dom, gpa );
+	if ( reg ) {
+		reg->refcount++;
+		result = ( char * )reg->virt + ( gpa - reg->start );
+		goto out;
+	}
+
+	pthread_mutex_unlock( &dom->mem_lock );
+
+	/* request token from host */
+	err = request( dom, KVMI_GET_MAP_TOKEN, NULL, 0, &token, &received );
+	if ( err )
+		return MAP_FAILED;
+
+	pthread_mutex_lock( &dom->mem_lock );
+
+	/* fill request */
+	memset( &map_req, 0, sizeof( struct kvmi_guest_mem_map ) );
+	memcpy( &map_req.token, &token, sizeof( map_req.token ) );
+	map_req.gpa = gpa;
+
+	/* request region mapping */
+	err = ioctl( dom->mem_fd, KVM_GUEST_MEM_MAP, &map_req );
+	if ( err && errno != EALREADY ) {
+		int _errno = errno;
+		pthread_mutex_unlock( &dom->mem_lock );
+		errno = _errno;
+		return MAP_FAILED;
+	}
+	/* map_req.gpa now contains the starting gpa of the mapped region */
+
+	/* another thread managed to add the region */
+	if ( err )
+		goto again;
+
+	result = mmap( NULL, map_req.length, PROT_READ | PROT_WRITE, MAP_SHARED, dom->mem_fd, map_req.gpa );
+	if ( result == MAP_FAILED ) {
+		int _errno = errno;
+		ioctl( dom->mem_fd, KVM_GUEST_MEM_UNMAP, map_req.gpa );
+		pthread_mutex_unlock( &dom->mem_lock );
+		errno = _errno;
+		return MAP_FAILED;
+	}
+
+	reg = malloc( sizeof( *reg ) );
+	if ( !reg ) {
+		int _errno = errno;
+		munmap( result, map_req.length );
+		ioctl( dom->mem_fd, KVM_GUEST_MEM_UNMAP, map_req.gpa );
+		pthread_mutex_unlock( &dom->mem_lock );
+		errno = _errno;
+		return MAP_FAILED;
+	}
+
+	/* add region to cache */
+	reg->start    = map_req.gpa;
+	reg->length   = map_req.length;
+	reg->virt     = result;
+	reg->refcount = 1;
+	list_add_tail( &dom->mem_cache, &reg->link );
+
+	result = ( char * )reg->virt + ( gpa - reg->start );
+
+out:
+	pthread_mutex_unlock( &dom->mem_lock );
+
+	return result;
+}
+
+static int kvmi_unmap_physical_page_v2( void *d, void *addr )
+{
+	struct kvmi_dom *       dom = d;
+	struct kvmi_mem_region *reg;
+	int                     _errno;
+	int                     err = 0;
+
+	/* validate input address */
+	if ( addr == NULL ) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	pthread_mutex_lock( &dom->mem_lock );
+
+	/* look-up region by local virtual address */
+	reg = kvmi_mem_cache_lookup_virt( dom, addr );
+	if ( !reg ) {
+		pthread_mutex_unlock( &dom->mem_lock );
+		errno = ENXIO;
+		return -1;
+	}
+
+	/* dec region reference count & unmap region if unreferenced */
+	reg->refcount--;
+	if ( reg->refcount == 0 ) {
+		munmap( reg->virt, reg->length );
+		err    = ioctl( dom->mem_fd, KVM_GUEST_MEM_UNMAP, reg->start );
+		_errno = errno;
+		list_del( &reg->link );
+		free( reg );
+		errno = _errno;
+	}
+
+	pthread_mutex_unlock( &dom->mem_lock );
+
+	return err;
+}
+
+static void __kvmi_mem_cache_cleanup( struct kvmi_dom *dom )
+{
+	list_t *                i;
+	list_t *                j;
+	struct kvmi_mem_region *reg;
+
+	/* unmap remaining regions - there should be none left */
+	list_for_each_safe_reverse( i, j, &dom->mem_cache )
+	{
+		reg = list_container( i, struct kvmi_mem_region, link );
+
+		munmap( reg->virt, reg->length );
+		ioctl( dom->mem_fd, KVM_GUEST_MEM_UNMAP, reg->start );
+		free( reg );
+	}
+
+	INIT_LIST_HEAD( &dom->mem_cache );
+}
+
+static void *kvmi_map_physical_page_v1( void *d, unsigned long long int gpa )
 {
 	struct kvmi_dom *dom = d;
 
@@ -1876,7 +2097,7 @@ void *kvmi_map_physical_page( void *d, unsigned long long int gpa )
 	return addr;
 }
 
-int kvmi_unmap_physical_page( void *d, void *addr )
+static int kvmi_unmap_physical_page_v1( void *d, void *addr )
 {
 	const struct kvmi_dom *dom = d;
 	int                    _errno;
@@ -1891,6 +2112,16 @@ int kvmi_unmap_physical_page( void *d, void *addr )
 	errno = _errno;
 
 	return err;
+}
+
+void *kvmi_map_physical_page( void *d, unsigned long long int gpa )
+{
+	return mem_v2 ? kvmi_map_physical_page_v2( d, gpa ) : kvmi_map_physical_page_v1( d, gpa );
+}
+
+int kvmi_unmap_physical_page( void *d, void *addr )
+{
+	return mem_v2 ? kvmi_unmap_physical_page_v2( d, addr ) : kvmi_unmap_physical_page_v1( d, addr );
 }
 
 static void *alloc_get_registers_req( unsigned short vcpu, struct kvm_msrs *msrs, size_t *req_size )
