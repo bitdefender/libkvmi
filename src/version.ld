@@ -18,8 +18,6 @@ KVMI_1.0 {
 		kvmi_eptp_support;
 		kvmi_get_cpuid;
 		kvmi_get_maximum_gfn;
-		kvmi_get_page_access;
-		kvmi_get_page_write_bitmap;
 		kvmi_get_pending_events;
 		kvmi_get_registers;
 		kvmi_get_starttime;
@@ -42,6 +40,7 @@ KVMI_1.0 {
 		kvmi_queue_reply_event;
 		kvmi_queue_spp_access;
 		kvmi_read_physical;
+		kvmi_remote_mapping_v2;
 		kvmi_reply_event;
 		kvmi_set_event_cb;
 		kvmi_set_log_cb;

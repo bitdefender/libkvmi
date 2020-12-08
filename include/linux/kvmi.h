@@ -128,17 +128,6 @@ struct kvmi_get_guest_info_reply {
 	__u32 padding[3];
 };
 
-struct kvmi_get_page_access {
-	__u16 view;
-	__u16 count;
-	__u32 padding;
-	__u64 gpa[0];
-};
-
-struct kvmi_get_page_access_reply {
-	__u8 access[0];
-};
-
 struct kvmi_page_access_entry {
 	__u64 gpa;
 	__u8 access;
@@ -159,17 +148,6 @@ struct kvmi_control_spp {
 	__u8 padding1;
 	__u16 padding2;
 	__u32 padding3;
-};
-
-struct kvmi_get_page_write_bitmap {
-	__u16 view;
-	__u16 count;
-	__u32 padding;
-	__u64 gpa[0];
-};
-
-struct kvmi_get_page_write_bitmap_reply {
-	__u32 bitmap[0];
 };
 
 struct kvmi_page_write_bitmap_entry {
@@ -351,7 +329,6 @@ struct kvmi_vcpu_translate_gva_reply {
 struct kvmi_guest_mem_map {
 	struct kvmi_mem_token token;		/* In */
 	__u64 gpa;				/* In/Out */
-	__u64 virt;				/* Out */
 	__u64 length;				/* Out */
 };
 

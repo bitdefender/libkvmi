@@ -90,8 +90,6 @@ int   kvmi_control_msr( void *dom, unsigned short vcpu, unsigned int msr, bool e
 int   kvmi_control_singlestep( void *dom, unsigned short vcpu, bool enable );
 int   kvmi_translate_gva( void *dom, unsigned short vcpu, __u64 gva, __u64 *gpa );
 int   kvmi_pause_all_vcpus( void *dom, unsigned int count );
-int   kvmi_get_page_access( void *dom, unsigned long long int gpa, unsigned char *access, unsigned short view );
-int   kvmi_get_page_write_bitmap( void *dom, __u64 gpa, __u32 *bitmap );
 int   kvmi_set_page_access( void *dom, unsigned long long int *gpa, unsigned char *access, unsigned short count,
                             unsigned short view );
 int   kvmi_set_page_write_bitmap( void *dom, __u64 *gpa, __u32 *bitmap, unsigned short count );
