@@ -135,4 +135,12 @@ struct kvmi_features {
 	__u8 padding[4];
 };
 
+struct kvmi_event_cpuid {
+	__u32 function;
+	__u32 index;
+	__u8  insn_length;
+	__u8  padding1[3];
+	__u32 padding2;
+};
+
 #endif /* _UAPI_ASM_X86_KVMI_H */
