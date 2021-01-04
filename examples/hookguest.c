@@ -84,7 +84,9 @@ static void handle_cr_event( void *dom, struct kvmi_dom_event *ev )
 		struct kvmi_vcpu_hdr       hdr;
 		struct kvmi_event_reply    common;
 		struct kvmi_event_cr_reply cr;
-	} rpl = { 0 };
+	} rpl;
+
+	memset( &rpl, 0, sizeof( rpl ) );
 
 	printf( "CR%d 0x%llx -> 0x%llx (vcpu%u)\n", cr->cr, cr->old_value, cr->new_value, ev->event.common.vcpu );
 
@@ -99,7 +101,9 @@ static void handle_msr_event( void *dom, struct kvmi_dom_event *ev )
 		struct kvmi_vcpu_hdr        hdr;
 		struct kvmi_event_reply     common;
 		struct kvmi_event_msr_reply msr;
-	} rpl = { 0 };
+	} rpl;
+
+	memset( &rpl, 0, sizeof( rpl ) );
 
 	printf( "MSR 0x%x 0x%llx -> 0x%llx (vcpu%u)\n", msr->msr, msr->old_value, msr->new_value,
 	        ev->event.common.vcpu );
@@ -142,7 +146,7 @@ static void handle_pause_vcpu_event( void *dom, struct kvmi_dom_event *ev )
 	struct {
 		struct kvmi_vcpu_hdr    hdr;
 		struct kvmi_event_reply common;
-	} rpl             = { 0 };
+	} rpl;
 	unsigned int vcpu = ev->event.common.vcpu;
 	static bool  events_enabled[MAX_VCPU];
 
@@ -152,6 +156,8 @@ static void handle_pause_vcpu_event( void *dom, struct kvmi_dom_event *ev )
 		enable_vcpu_events( dom, vcpu );
 		events_enabled[vcpu] = true;
 	}
+
+	memset( &rpl, 0, sizeof( rpl ) );
 
 	reply_continue( dom, ev, &rpl.hdr, sizeof( rpl ) );
 }
@@ -175,13 +181,14 @@ static void maybe_start_pf_test( void *dom, struct kvmi_dom_event *ev )
 	__u64       cr3  = ev->event.common.arch.sregs.cr3;
 	__u16       vcpu = ev->event.common.vcpu;
 	__u64       pt   = cr3 & ~0xfff;
+	__u64       end;
 
 	if ( started || !pt )
 		return;
 
 	printf( "Starting #PF test with CR3 0x%llx (vcpu%u)\n", cr3, vcpu );
 
-	for ( __u64 end = pt + EPT_TEST_PAGES * PAGE_SIZE; pt < end; pt += PAGE_SIZE )
+	for ( end = pt + EPT_TEST_PAGES * PAGE_SIZE; pt < end; pt += PAGE_SIZE )
 		write_protect_page( dom, pt );
 
 	started = true;
@@ -204,8 +211,10 @@ static void handle_pf_event( void *dom, struct kvmi_dom_event *ev )
 		struct kvmi_vcpu_hdr       hdr;
 		struct kvmi_event_reply    common;
 		struct kvmi_event_pf_reply pf;
-	} rpl       = {};
+	} rpl;
 	__u8 access = KVMI_PAGE_ACCESS_R | KVMI_PAGE_ACCESS_W | KVMI_PAGE_ACCESS_X;
+
+	memset( &rpl, 0, sizeof( rpl ) );
 
 	printf( "PF gva 0x%llx gpa 0x%llx access %s [0x%x] (vcpu%u)\n", pf->gva, pf->gpa, access_str[pf->access & 7],
 	        pf->access, vcpu );
