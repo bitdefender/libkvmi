@@ -622,7 +622,7 @@ static int read_qemu_data( struct kvmi_dom *dom, struct kvmi_qemu2introspector *
 static bool handshake_done( struct kvmi_ctx *ctx, struct kvmi_dom *dom )
 {
 	struct kvmi_qemu2introspector *qemu  = &dom->hsk;
-	struct kvmi_introspector2qemu  intro = {};
+	struct kvmi_introspector2qemu  intro;
 	struct iovec                   iov   = { .iov_base = &intro, .iov_len = sizeof( intro ) };
 
 	if ( read_qemu_data( dom, qemu ) ) {
@@ -630,6 +630,7 @@ static bool handshake_done( struct kvmi_ctx *ctx, struct kvmi_dom *dom )
 		return false;
 	}
 
+	memset( &intro, 0, sizeof( intro ) );
 	intro.struct_size = sizeof( intro );
 	if ( ctx->handshake_cb && ctx->handshake_cb( qemu, &intro, ctx->cb_ctx ) < 0 )
 		return false;
@@ -1148,6 +1149,7 @@ void kvmi_close( void *_ctx )
 void kvmi_domain_close( void *d, bool do_shutdown )
 {
 	struct kvmi_dom *dom = d;
+	struct kvmi_dom_event *ev;
 
 	if ( !dom )
 		return;
@@ -1158,7 +1160,7 @@ void kvmi_domain_close( void *d, bool do_shutdown )
 		shutdown( dom->fd, SHUT_RDWR );
 	close( dom->fd );
 
-	for ( struct kvmi_dom_event *ev = dom->events; ev; ) {
+	for ( ev = dom->events; ev; ) {
 		struct kvmi_dom_event *next = ev->next;
 
 		free( ev );
@@ -2558,8 +2560,8 @@ int kvmi_get_xcr( void *dom, unsigned short vcpu, __u8 xcr, __u64 *value )
 
 int kvmi_set_xsave( void *dom, unsigned short vcpu, const void *buffer, size_t size )
 {
-	struct kvmi_msg_hdr  hdr      = {};
-	struct kvmi_vcpu_hdr vcpu_hdr = {};
+	struct kvmi_msg_hdr  hdr;
+	struct kvmi_vcpu_hdr vcpu_hdr;
 	struct iovec         iov[]    = {
                 { .iov_base = &hdr, .iov_len = sizeof( hdr ) },
                 { .iov_base = &vcpu_hdr, .iov_len = sizeof( vcpu_hdr ) },
@@ -2568,9 +2570,13 @@ int kvmi_set_xsave( void *dom, unsigned short vcpu, const void *buffer, size_t s
 	size_t n          = sizeof( iov ) / sizeof( iov[0] );
 	size_t total_size = sizeof( hdr ) + sizeof( vcpu_hdr ) + size;
 
+	memset( &hdr, 0, sizeof( hdr ) );
+
 	hdr.id   = KVMI_VCPU_SET_XSAVE;
 	hdr.seq  = new_seq();
 	hdr.size = total_size - sizeof( hdr );
+
+	memset( &vcpu_hdr, 0, sizeof( vcpu_hdr ) );
 
 	vcpu_hdr.vcpu = vcpu;
 
