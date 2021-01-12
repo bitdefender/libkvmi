@@ -4,6 +4,7 @@ KVMI_1.0 {
 		kvmi_batch_commit;
 		kvmi_batch_free;
 		kvmi_close;
+		kvmi_change_gfn;
 		kvmi_check_command;
 		kvmi_check_event;
 		kvmi_connection_fd;

@@ -53,6 +53,7 @@ enum {
 	KVMI_CONTROL_EPT_VIEW      = 36,
 	KVMI_VCPU_GET_XCR          = 37,
 	KVMI_VCPU_SET_XSAVE        = 38,
+	KVMI_VCPU_CHANGE_GFN       = 60,
 
 	KVMI_VCPU_CONTROL_SINGLESTEP = 63,
 
@@ -322,6 +323,11 @@ struct kvmi_vcpu_translate_gva {
 
 struct kvmi_vcpu_translate_gva_reply {
 	__u64 gpa;
+};
+
+struct kvmi_vcpu_change_gfn {
+	__u64 old_gfn;
+	__u64 new_gfn;
 };
 
 /*
