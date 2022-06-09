@@ -1246,7 +1246,7 @@ static int expected_event_data_size( size_t event_id, size_t *size )
                 [KVMI_EVENT_TRAP]        = sizeof( struct kvmi_event_trap ),
                 [KVMI_EVENT_UNHOOK]      = 1,
                 [KVMI_EVENT_XSETBV]      = 1,
-                [KVMI_EVENT_SINGLESTEP]  = 1,
+                [KVMI_EVENT_SINGLESTEP]  = sizeof( struct kvmi_event_singlestep ),
                 [KVMI_EVENT_CPUID]       = sizeof( struct kvmi_event_cpuid ),
 	};
 

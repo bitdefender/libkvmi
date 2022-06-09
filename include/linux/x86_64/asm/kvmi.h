@@ -143,4 +143,9 @@ struct kvmi_event_cpuid {
 	__u32 padding2;
 };
 
+struct kvmi_event_singlestep {
+	__u8 failed;
+	__u8 padding[7];
+};
+
 #endif /* _UAPI_ASM_X86_KVMI_H */
