@@ -2,11 +2,11 @@ Name: libkvmi
 Summary: KVM Virtual Machine Introspection library
 License: LGPLv3+
 URL: https://github.com/bitdefender/libkvmi
-Version: 1.0.0
+Version: 1.1.0
 Release: 0
 Group: System/Libraries
 BuildRequires: autoconf automake libtool glibc-devel gcc kernel-headers make
-Source0: https://github.com/bitdefender/libkvmi/archive/v1.0.0.tar.gz
+Source0: https://github.com/bitdefender/libkvmi/archive/v1.1.0.tar.gz
 
 %description
 This package contains the client library for KVM's VMI subsystem
@@ -35,7 +35,7 @@ make
 %{_bindir}/hookguest-libkvmi
 %{_libdir}/libkvmi.so
 %{_libdir}/libkvmi.so.0
-%{_libdir}/libkvmi.so.1.0.0
+%{_libdir}/libkvmi.so.1.1.0
 
 %files devel
 %{_includedir}/%{name}/libkvmi.h

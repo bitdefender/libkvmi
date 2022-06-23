@@ -1,4 +1,4 @@
-AC_INIT([libkvmi], [1.0])
+AC_INIT([libkvmi], [1.1])
 
 LT_INIT
 
