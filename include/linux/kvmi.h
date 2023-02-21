@@ -53,6 +53,7 @@ enum {
 	KVMI_CONTROL_EPT_VIEW      = 36,
 	KVMI_VCPU_GET_XCR          = 37,
 	KVMI_VCPU_SET_XSAVE        = 38,
+	KVMI_QUERY_PHYSICAL        = 39,
 	KVMI_VCPU_CHANGE_GFN       = 60,
 
 	KVMI_VCPU_CONTROL_SINGLESTEP = 63,
@@ -199,6 +200,15 @@ struct kvmi_write_physical {
 	__u64 gpa;
 	__u64 size;
 	__u8  data[0];
+};
+
+struct kvmi_query_physical {
+	__u64 gfn;
+};
+
+struct kvmi_query_physical_reply {
+	__u64 gfn;
+	__u64 size;
 };
 
 struct kvmi_vcpu_hdr {
