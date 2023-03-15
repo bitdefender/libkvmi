@@ -330,8 +330,7 @@ static int kvmi_open_kvmmem( struct kvmi_dom *dom )
 		}
 	}
 
-	if ( dom->mem_fd == -1 )
-	{
+	if ( dom->mem_fd == -1 ) {
 		uuid_unparse_upper( dom->hsk.uuid, proc_entry_name + 15 );
 		dom->mem_remote = false;
 		dom->mem_fd = open( proc_entry_name, O_RDWR );
@@ -518,9 +517,9 @@ static int do_write( struct kvmi_dom *dom, struct iovec *iov, size_t iov_len, si
 	while ( to_send ) {
 		ssize_t n;
 
-		if ( !prev ) {
+		if ( !prev )
 			n = do_write_iov( dom, iov + iov_idx, iov_len - iov_idx );
-		} else {
+		else {
 			struct iovec tmp;
 
 			tmp.iov_base = iov[iov_idx].iov_base + prev;
@@ -1620,7 +1619,6 @@ int kvmi_pause_all_vcpus( void *dom, unsigned int count )
 		return -1;
 
 	for ( vcpu = 0; vcpu < count; vcpu++ ) {
-
 		setup_kvmi_pause_vcpu_msg( &msg, vcpu );
 
 		msg.cmd.wait = 1;
