@@ -28,4 +28,6 @@ AS_CASE([$host_cpu],
 )
 AC_SUBST([ARCH])
 
+AC_CHECK_HEADERS([uuid/uuid.h], [], [AC_MSG_ERROR([please install the uuid development package])])
+
 AC_OUTPUT(Makefile src/Makefile include/Makefile examples/Makefile libkvmi.pc)
