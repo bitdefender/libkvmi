@@ -2,7 +2,7 @@
 
 ![Build](https://github.com/bitdefender/libkvmi/workflows/Build/badge.svg)
 
-(c) 2017-2021 Bitdefender SRL
+(c) 2017-2023 Bitdefender SRL
 
 ## Usage
 

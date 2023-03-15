@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Bitdefender S.R.L.
+ * Copyright (C) 2017-2023 Bitdefender S.R.L.
  *
  * The KVMI Library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
