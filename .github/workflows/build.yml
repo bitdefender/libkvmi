@@ -11,6 +11,8 @@ jobs:
         os: [ubuntu-18.04, ubuntu-20.04]
 
     steps:
+    - name: install required packages
+      run: sudo apt-get install uuid-dev
     - uses: actions/checkout@v1
     - name: Bootstrap
       run: ./bootstrap
