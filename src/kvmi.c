@@ -2722,3 +2722,23 @@ int kvmi_change_gfn( void *dom, unsigned short vcpu, __u64 old_gfn, __u64 new_gf
 
 	return request( dom, KVMI_VCPU_CHANGE_GFN, &req, sizeof( req ), NULL, NULL );
 }
+
+int kvmi_alloc_gfn( void *dom, __u64 gfn )
+{
+	struct {
+		struct kvmi_vcpu_hdr        vcpu;
+		struct kvmi_vcpu_alloc_gfn  cmd;
+	} req = { .vcpu = { .vcpu = 0 }, .cmd = { .gfn = gfn } };
+
+	return request( dom, KVMI_VCPU_ALLOC_GFN, &req, sizeof( req ), NULL, NULL );
+}
+
+int kvmi_free_gfn( void *dom, __u64 gfn )
+{
+	struct {
+		struct kvmi_vcpu_hdr        vcpu;
+		struct kvmi_vcpu_free_gfn   cmd;
+	} req = { .vcpu = { .vcpu = 0 }, .cmd = { .gfn = gfn } };
+
+	return request( dom, KVMI_VCPU_FREE_GFN, &req, sizeof( req ), NULL, NULL );
+}

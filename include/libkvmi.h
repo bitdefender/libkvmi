@@ -142,6 +142,8 @@ int     kvmi_control_ept_view( void *dom, unsigned short vcpu, unsigned short vi
 bool    kvmi_remote_mapping_v2( void );
 size_t  kvmi_get_pending_events( void *dom );
 int     kvmi_change_gfn( void *dom, unsigned short vcpu, __u64 old_gfn, __u64 new_gfn );
+int     kvmi_alloc_gfn( void *dom, __u64 gfn );
+int     kvmi_free_gfn( void *dom, __u64 gfn );
 
 #ifdef __cplusplus
 }

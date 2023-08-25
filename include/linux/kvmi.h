@@ -54,6 +54,8 @@ enum {
 	KVMI_VCPU_GET_XCR          = 37,
 	KVMI_VCPU_SET_XSAVE        = 38,
 	KVMI_QUERY_PHYSICAL        = 39,
+	KVMI_VCPU_ALLOC_GFN        = 41,
+	KVMI_VCPU_FREE_GFN         = 42,
 	KVMI_VCPU_CHANGE_GFN       = 60,
 
 	KVMI_VCPU_CONTROL_SINGLESTEP = 63,
@@ -338,6 +340,14 @@ struct kvmi_vcpu_translate_gva_reply {
 struct kvmi_vcpu_change_gfn {
 	__u64 old_gfn;
 	__u64 new_gfn;
+};
+
+struct kvmi_vcpu_alloc_gfn {
+	__u64 gfn;
+};
+
+struct kvmi_vcpu_free_gfn {
+	__u64 gfn;
 };
 
 /*
