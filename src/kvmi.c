@@ -2734,3 +2734,23 @@ int kvmi_free_gfn( void *dom, __u64 gfn )
 
 	return request( dom, KVMI_VCPU_FREE_GFN, &req, sizeof( req ), NULL, NULL );
 }
+
+int kvmi_create_ept_view( void *dom, unsigned short *view )
+{
+	struct kvmi_create_ept_view_reply rpl;
+	int                               err;
+	size_t                            received = sizeof( rpl );
+
+	err = request( dom, KVMI_CREATE_EPT_VIEW, NULL, 0, &rpl, &received );
+	if ( !err && view )
+		*view = rpl.view;
+
+	return err;
+}
+
+int kvmi_destroy_ept_view( void *dom, unsigned short view )
+{
+	struct kvmi_destroy_ept_view req = { .view = view };
+
+	return request( dom, KVMI_DESTROY_EPT_VIEW, &req, sizeof( req ), NULL, 0 );
+}

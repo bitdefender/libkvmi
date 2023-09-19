@@ -55,6 +55,8 @@ enum {
 	KVMI_QUERY_PHYSICAL          = 39,
 	KVMI_VCPU_ALLOC_GFN          = 41,
 	KVMI_VCPU_FREE_GFN           = 42,
+	KVMI_CREATE_EPT_VIEW         = 43,
+	KVMI_DESTROY_EPT_VIEW        = 44,
 	KVMI_VCPU_CHANGE_GFN         = 60,
 
 	KVMI_VCPU_CONTROL_SINGLESTEP = 63,
@@ -351,6 +353,16 @@ struct kvmi_vcpu_alloc_gfn {
 
 struct kvmi_vcpu_free_gfn {
 	__u64 gfn;
+};
+
+struct kvmi_create_ept_view_reply {
+	__u16 view;
+	__u16 pad[3];
+};
+
+struct kvmi_destroy_ept_view {
+	__u16 view;
+	__u16 pad[3];
 };
 
 /*
