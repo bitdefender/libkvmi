@@ -137,6 +137,8 @@ int     kvmi_set_ept_page_conv( void *dom, unsigned short index, unsigned long l
 int     kvmi_get_ept_page_conv( void *dom, unsigned short index, unsigned long long gpa, bool *sve );
 int     kvmi_switch_ept_view( void *dom, unsigned short vcpu, unsigned short view );
 int     kvmi_disable_ve( void *dom, unsigned short vcpu );
+int     kvmi_create_ept_view( void *dom, unsigned short *view );
+int     kvmi_destroy_ept_view( void *dom, unsigned short view );
 int     kvmi_get_ept_view( void *dom, unsigned short vcpu, unsigned short *view );
 int     kvmi_control_ept_view( void *dom, unsigned short vcpu, unsigned short view, bool visible );
 bool    kvmi_remote_mapping_v2( void );

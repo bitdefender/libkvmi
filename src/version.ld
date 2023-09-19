@@ -69,6 +69,8 @@ KVMI_1.0 {
 		kvmi_control_ept_view;
 		kvmi_alloc_gfn;
 		kvmi_free_gfn;
+		kvmi_create_ept_view;
+		kvmi_destroy_ept_view;
 	local:
 		*;
 };
