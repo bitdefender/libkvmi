@@ -2570,6 +2570,19 @@ int kvmi_get_maximum_gfn( void *dom, unsigned long long *gfn )
 	return err;
 }
 
+int kvmi_get_next_available_gfn( void *dom, unsigned long long *gfn )
+{
+	struct kvmi_get_next_available_gfn_reply rpl;
+	size_t                                   received = sizeof( rpl );
+	int                                      err;
+
+	err = request( dom, KVMI_GET_NEXT_AVAILABLE_GFN, NULL, 0, &rpl, &received );
+	if ( !err )
+		*gfn = rpl.gfn;
+
+	return err;
+}
+
 /* begin of VE related functions */
 int kvmi_set_ve_info_page( void *dom, unsigned short vcpu, unsigned long long int gpa )
 {
