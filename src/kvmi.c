@@ -2581,27 +2581,6 @@ int kvmi_set_ve_info_page( void *dom, unsigned short vcpu, unsigned long long in
 	return request( dom, KVMI_SET_VE_INFO_PAGE, &req, sizeof( req ), NULL, 0 );
 }
 
-int kvmi_set_ept_page_conv( void *dom, unsigned short index, unsigned long long gpa, bool sve )
-{
-	struct kvmi_set_ept_page_conv_req req = { .view = index, .gpa = gpa, .sve = sve };
-
-	return request( dom, KVMI_SET_EPT_PAGE_CONV, &req, sizeof( req ), NULL, 0 );
-}
-
-int kvmi_get_ept_page_conv( void *dom, unsigned short index, unsigned long long gpa, bool *sve )
-{
-	struct kvmi_get_ept_page_conv_req   req = { .view = index, .gpa = gpa };
-	struct kvmi_get_ept_page_conv_reply rpl;
-	int                                 err;
-	size_t                              received = sizeof( rpl );
-
-	err = request( dom, KVMI_GET_EPT_PAGE_CONV, &req, sizeof( req ), &rpl, &received );
-	if ( !err )
-		*sve = !!rpl.sve;
-
-	return err;
-}
-
 int kvmi_switch_ept_view( void *dom, unsigned short vcpu, unsigned short view )
 {
 	struct {
