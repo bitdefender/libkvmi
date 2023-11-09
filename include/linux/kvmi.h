@@ -343,6 +343,9 @@ struct kvmi_vcpu_translate_gva_reply {
 };
 
 struct kvmi_vcpu_change_gfn {
+	__u16 view;
+	__u16 padding1;
+	__u32 padding2;
 	__u64 old_gfn;
 	__u64 new_gfn;
 };
