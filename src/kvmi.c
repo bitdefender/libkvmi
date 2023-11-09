@@ -2705,12 +2705,12 @@ int kvmi_translate_gva( void *dom, unsigned short vcpu, __u64 gva, __u64 *gpa )
 	return err;
 }
 
-int kvmi_change_gfn( void *dom, unsigned short vcpu, __u64 old_gfn, __u64 new_gfn )
+int kvmi_change_gfn( void *dom, unsigned short vcpu, unsigned short view, __u64 old_gfn, __u64 new_gfn )
 {
 	struct {
 		struct kvmi_vcpu_hdr        vcpu;
 		struct kvmi_vcpu_change_gfn cmd;
-	} req = { .vcpu = { .vcpu = vcpu }, .cmd = { .old_gfn = old_gfn, .new_gfn = new_gfn } };
+	} req = { .vcpu = { .vcpu = vcpu }, .cmd = { .view = view, .old_gfn = old_gfn, .new_gfn = new_gfn } };
 
 	return request( dom, KVMI_VCPU_CHANGE_GFN, &req, sizeof( req ), NULL, NULL );
 }
